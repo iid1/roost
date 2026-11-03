@@ -1,0 +1,138 @@
+/*
+ * Copyright (c) 2026 The ZMK Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
+// Default mouse scroll velocity (official recommended value: 20)
+#define ZMK_POINTING_DEFAULT_SCRL_VAL 20
+
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/bt.h>
+#include <dt-bindings/zmk/pointing.h>
+#include <input/processors.dtsi>
+#include <dt-bindings/zmk/input_transform.h>
+
+/ {
+    behaviors {
+        // Rotary encoder zoom binding (CW: Zoom In Ctrl+=, CCW: Zoom Out Ctrl+-)
+        zoom_encoder: zoom_encoder {
+            compatible = "zmk,behavior-sensor-rotate";
+            #sensor-binding-cells = <0>;
+            bindings = <&kp LC(MINUS)>, <&kp LC(EQUAL)>;
+            tap-ms = <10>;
+        };
+
+        // SW4: Tap for Japanese (LANG1), Hold to temporarily enable pointer movement
+        sw4_ht: sw4_hold_tap {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "tap-preferred";
+            tapping-term-ms = <200>;
+            quick-tap-ms = <200>;
+            bindings = <&mo>, <&kp>;
+        };
+
+        // SW6: Tap for Mouse Toggle (ON/OFF), Hold 500ms for Scroll & Navigation layer
+        sw6_ht: sw6_hold_tap {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "hold-preferred";
+            tapping-term-ms = <500>;
+            quick-tap-ms = <200>;
+            bindings = <&mo>, <&tog>;
+        };
+    };
+
+    combos {
+        compatible = "zmk,combos";
+
+        // SW6 + SW5 combo for Browser Back (MB4)
+        combo_back {
+            timeout-ms = <80>;
+            key-positions = <3 4>;
+            bindings = <&mkp MB4>;
+        };
+
+        // SW6 + SW4 combo for Middle Click (MCLK)
+        combo_mclk {
+            timeout-ms = <80>;
+            key-positions = <2 4>;
+            bindings = <&mkp MCLK>;
+        };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+
+        // Layer 0: Default layer (cursor movement disabled)
+        default_layer {
+            bindings = <
+                &mkp LCLK        // SW2 (KEY_1): Left Click
+                &mkp RCLK        // SW3 (KEY_2): Right Click
+                &sw4_ht 2 LANG1  // SW4 (KEY_3): Tap: Japanese (LANG1), Hold: Enable Mouse
+                &kp LANG2        // SW5 (KEY_4): English (LANG2)
+                &sw6_ht 3 2      // SW6 (KEY_5): Tap: Mouse Toggle ON/OFF, Hold 0.5s: Scroll
+                &mo 1            // SW1 (ENC_SW): Hold: Layer 1 (BT & Media)
+            >;
+            sensor-bindings = <&zoom_encoder>;
+        };
+
+        // Layer 1: Bluetooth & Media control layer (while SW1 is held)
+        media_and_bt_layer {
+            bindings = <
+                &bt BT_CLR       // SW2: Clear BLE pairing profile
+                &bt BT_SEL 0     // SW3: PC Profile 1 (BT 0)
+                &bt BT_SEL 1     // SW4: PC Profile 2 (BT 1)
+                &bt BT_SEL 2     // SW5: PC Profile 3 (BT 2)
+                &kp C_MUTE       // SW6: Mute
+                &trans           // SW1: ENC_SW
+            >;
+            sensor-bindings = <&inc_dec_kp C_VOL_DN C_VOL_UP>;
+        };
+
+        // Layer 2: Mouse Active layer (toggled ON via SW6, or held via SW4)
+        mouse_layer {
+            bindings = <
+                &mkp LCLK        // SW2: Left Click
+                &mkp RCLK        // SW3: Right Click
+                &sw4_ht 2 LANG1  // SW4: Tap: Japanese, Hold: Keep Mouse Active
+                &kp LANG2        // SW5: English
+                &sw6_ht 3 2      // SW6: Tap: Toggle Mouse OFF, Hold 0.5s: Scroll
+                &mo 1            // SW1: ENC_SW
+            >;
+            sensor-bindings = <&zoom_encoder>;
+        };
+
+        // Layer 3: Scroll & Navigation layer (held via SW6 for >0.5s)
+        scroll_nav_layer {
+            bindings = <
+                &mkp LCLK        // SW2: Left Click
+                &mkp RCLK        // SW3: Right Click
+                &mkp MCLK        // SW4: Middle Click (MCLK)
+                &mkp MB4         // SW5: Browser Back (MB4)
+                &trans           // SW6: Held
+                &mo 1            // SW1: ENC_SW
+            >;
+            sensor-bindings = <&zoom_encoder>;
+        };
+    };
+};
+
+/* Perch (Wrist Mouse) input listener & processor configuration */
+&pmw3360_listener {
+    // Default (Layer 0, 1): Scale pointer movement by 0x (locked / inactive)
+    input-processors = <&zip_xy_scaler 0 1>;
+
+    // Layer 3 (while SW6 is held): Map XY movement to smooth scrolling (invert Y, 1/8 speed)
+    mouse_scroll {
+        layers = <3>;
+        input-processors = <&zip_xy_to_scroll_mapper>, <&zip_scroll_transform INPUT_TRANSFORM_Y_INVERT>, <&zip_scroll_scaler 1 8>;
+    };
+
+    // Layer 2 (when mouse mode is active): Enable 1x pointer movement
+    mouse_active {
+        layers = <2>;
+        input-processors = <&zip_xy_scaler 1 1>;
+    };
+};

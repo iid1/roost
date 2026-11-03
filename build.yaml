@@ -1,0 +1,11 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+include:
+  - board: xiao_ble//zmk
+    shield: left_device
+  - board: xiao_ble//zmk
+    shield: wrist_mouse
+  - board: xiao_ble//zmk
+    shield: settings_reset
+

@@ -1,0 +1,9 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+if SHIELD_LEFT_DEVICE
+
+config ZMK_KEYBOARD_NAME
+    default "Left Device"
+
+endif

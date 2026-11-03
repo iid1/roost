@@ -1,0 +1,25 @@
+# KiCad files
+*.kicad_prl
+*-bak
+*-bak.kicad_sch
+*-bak.kicad_pcb
+_autosave-*
+*.lck
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors & IDEs
+.vscode/
+.idea/
+.history/
+*.code-workspace
+
+# ZMK / Zephyr local build output
+build/
+.west/
+zmk/
+modules/
+zephyr/
